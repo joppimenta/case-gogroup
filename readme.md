@@ -175,7 +175,7 @@ extrair_dados_magalu >> dbt_transform
 
 Configuração de retentativas: 1 retry com intervalo de 5 minutos.
 
-### Acesso ao Dashboard
+## Acesso ao Dashboard
 
 Abra [http://localhost:8501](http://localhost:8501) e visualize os dados.
 
