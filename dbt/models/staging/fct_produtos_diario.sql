@@ -10,7 +10,15 @@ deduplicado_diario AS (
         DATETIME(timestamp_coleta, "America/Sao_Paulo") AS timestamp_coleta,
         
         -- limpeza dos valores dos preços
-        SAFE_CAST(REPLACE(REPLACE(REPLACE(preco_original, 'R$', ''), '.', ''), ',', '.') AS FLOAT64) as preco_original,
+        SAFE_CAST(
+            REPLACE(
+                REPLACE(
+                REGEXP_REPLACE(preco_original, r'[^0-9,\.]', ''),
+                '.', ''
+                ),
+                ',', '.'
+            ) AS FLOAT64
+        ) AS preco_original,
         SAFE_CAST(REPLACE(REPLACE(REPLACE(preco_pix, 'R$', ''), '.', ''), ',', '.') AS FLOAT64) as preco_pix,
         SAFE_CAST(num_parcelas AS INT64) AS num_parcelas,
         SAFE_CAST(REPLACE(REPLACE(REPLACE(valor_parcela, 'R$', ''), '.', ''), ',', '.') AS FLOAT64) as valor_parcela,

@@ -11,8 +11,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ── Conexão BigQuery ──────────────────────────────────────────────────────────
-
 @st.cache_resource
 def get_client():
     creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "/opt/airflow/credentials/gcp-key.json")
@@ -35,8 +33,6 @@ with st.spinner("Carregando dados do BigQuery..."):
     except Exception as e:
         st.error(f"Erro ao conectar ao BigQuery: {e}")
         st.stop()
-
-# ── Header ────────────────────────────────────────────────────────────────────
 
 st.title("📱 Monitor de Preços — Smartphones")
 if not df.empty:
@@ -114,18 +110,47 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("1 · Evolução do Preço Médio por Dia")
+
+    dff["data_coleta"] = pd.to_datetime(dff["data_coleta"])
+    dff["data_coleta"] = dff["data_coleta"].dt.floor("D")
+
     evolucao = (
         dff.groupby("data_coleta")["preco_pix"]
         .mean()
         .reset_index()
         .rename(columns={"preco_pix": "preco_medio"})
     )
+
     fig = px.line(
-        evolucao, x="data_coleta", y="preco_medio",
+        evolucao,
+        x="data_coleta",
+        y="preco_medio",
         markers=True,
-        labels={"data_coleta": "Data", "preco_medio": "Preço Médio (R$)"},
+        text="preco_medio",
+        labels={
+            "data_coleta": "Data",
+            "preco_medio": "Preço Médio (R$)"
+        },
+        template="plotly"
     )
-    fig.update_traces(line_color="#636EFA")
+
+    fig.update_traces(
+        line_color="#636EFA",
+        texttemplate="R$ %{text:,.0f}",  # formatação
+        textposition="top center"
+    )
+
+    fig.update_layout(
+        xaxis=dict(
+            tickformat="%d/%m",
+        ),
+        yaxis=dict(
+            showgrid=False,
+            showticklabels=False,
+            title=""
+        )
+    )
+
     st.plotly_chart(fig, use_container_width=True)
 
 with col2:
@@ -168,44 +193,75 @@ with col3:
 
 with col4:
     st.subheader("4 · Frete Grátis: Preço Médio Comparativo")
-    frete = (
-        dff.groupby("eh_full")["preco_pix"]
-        .mean()
-        .reset_index()
-    )
-    frete["label"] = frete["eh_full"].map({True: "Frete Grátis (Full)", False: "Sem Frete Grátis"})
+    frete = dff.groupby("eh_full")["preco_pix"].mean().reset_index()
+    frete["label"] = frete["eh_full"].map({True: "Com Full", False: "Sem Full"})
+    
     fig4 = px.bar(
-        frete, x="label", y="preco_pix",
-        labels={"label": "", "preco_pix": "Preço Médio (R$)"},
+        frete, 
+        x="label", 
+        y="preco_pix",
+        text_auto='.2f',
+        labels={"label": "Logística", "preco_pix": "Preço Médio (R$)"},
         color="label",
-        color_discrete_map={
-            "Frete Grátis (Full)": "#00CC96",
-            "Sem Frete Grátis":     "#EF553B"
-        }
+        color_discrete_map={"Com Full": "#00CC96", "Sem Full": "#EF553B"},
+        template="plotly_dark"
     )
-    fig4.update_layout(showlegend=False)
+    
+    fig4.update_traces(textposition='outside') # Coloca o texto fora da barra
+    fig4.update_layout(showlegend=False, height=350)
     st.plotly_chart(fig4, use_container_width=True)
 
 col5, col6 = st.columns(2)
 
 with col5:
     st.subheader("5 · Produtos com Maior Variação de Preço")
+
     variacao = (
         dff.groupby(["produto_id", "produto_titulo"])["preco_pix"]
         .agg(preco_min="min", preco_max="max")
         .reset_index()
     )
+
     variacao["variacao"] = variacao["preco_max"] - variacao["preco_min"]
-    top_var = variacao.nlargest(10, "variacao").sort_values("variacao")
-    top_var["titulo_curto"] = top_var["produto_titulo"].str[:40] + "..."
-    
-    fig5 = px.bar(
-        top_var, x="variacao", y="titulo_curto",
-        orientation="h",
-        labels={"variacao": "Variação (R$)", "titulo_curto": "Produto"},
-        color="variacao", color_continuous_scale="Oranges"
+
+    top_var = (
+        variacao
+        .nlargest(10, "variacao")
+        .sort_values("variacao", ascending=True)
     )
-    fig5.update_layout(coloraxis_showscale=False)
+
+    top_var["titulo_curto"] = top_var["produto_titulo"].apply(
+        lambda x: x[:37] + "..." if len(x) > 40 else x
+    )
+
+    top_var["cor"] = ["#FF8C42"] * 9 + ["#D7263D"]
+
+    fig5 = px.bar(
+        top_var,
+        x="variacao",
+        y="titulo_curto",
+        orientation="h",
+        text="variacao",
+        template="plotly"
+    )
+
+    fig5.update_traces(
+        marker_color="#FF8C42",
+        texttemplate="R$ %{text:,.0f}",
+        textposition="outside",
+    )
+
+    fig5.update_layout(
+        height=400,
+        margin=dict(l=10, r=10, t=30, b=10),
+        xaxis_title="Variação de Preço (R$)",
+        yaxis_title="",
+        yaxis=dict(
+            categoryorder="array",
+            categoryarray=top_var["titulo_curto"]
+        )
+    )
+
     st.plotly_chart(fig5, use_container_width=True)
 
 with col6:
@@ -217,22 +273,151 @@ with col6:
         .nlargest(15, "reputacao_atual_vendedor")
     )
     fig6 = px.bar(
-        reputacao, x="vendedor_nome", y="reputacao_atual_vendedor",
+        reputacao, 
+        x="vendedor_nome", 
+        y="reputacao_atual_vendedor",
         labels={"vendedor_nome": "Vendedor", "reputacao_atual_vendedor": "Nota"},
-        color="reputacao_atual_vendedor", color_continuous_scale="Viridis"
+        color="reputacao_atual_vendedor",
+        color_continuous_scale="RdYlGn", 
+        range_color=[0, 5]
     )
     st.plotly_chart(fig6, use_container_width=True)
 
-# Tabela bruta
 st.divider()
+
+col7 = st.columns(1)[0]
+
+with col7:
+    st.subheader("8 · Comparação de Preços")
+
+    preco_comp = pd.DataFrame({
+        "tipo": ["Pix", "Original", "Parcelado"],
+        "valor": [
+            dff["preco_pix"].mean(),
+            dff["preco_original"].mean(),
+            dff["valor_total_parcelado"].mean()
+        ]
+    })
+
+    fig7 = px.bar(
+        preco_comp,
+        x="tipo",
+        y="valor",
+        text="valor",
+        labels={"tipo": "Tipo", "valor": "Valor Médio (R$)"},
+        template="plotly"
+    )
+
+    fig7.update_traces(
+        texttemplate="R$ %{text:,.0f}",
+        textposition="outside",
+        marker_color=["#636EFA", "#FFA15A", "#EF553B"]
+    )
+
+    fig7.update_layout(
+        showlegend=False,
+        yaxis=dict(showgrid=False)
+    )
+
+    st.plotly_chart(fig7, use_container_width=True)
+
+
+st.divider()
+st.subheader("9 · Comparação de Preços por Produto")
+
+comp_prod = (
+    dff.groupby("produto_titulo")
+    .agg(
+        preco_pix=("preco_pix", "mean"),
+        preco_original=("preco_original", "mean"),
+        preco_parcelado=("valor_total_parcelado", "mean")
+    )
+    .reset_index()
+)
+
+top_prod = (
+    comp_prod
+    .sort_values("preco_pix", ascending=False)
+    .head(10)
+)
+
+df_melt = top_prod.melt(
+    id_vars="produto_titulo",
+    value_vars=["preco_pix", "preco_original", "preco_parcelado"],
+    var_name="tipo",
+    value_name="valor"
+)
+
+df_melt["tipo"] = df_melt["tipo"].map({
+    "preco_pix": "Pix",
+    "preco_original": "Original",
+    "preco_parcelado": "Parcelado"
+})
+
+df_melt["produto_curto"] = df_melt["produto_titulo"].apply(
+    lambda x: x[:30] + "..." if len(x) > 33 else x
+)
+
+fig9 = px.bar(
+    df_melt,
+    x="produto_curto",
+    y="valor",
+    color="tipo",
+    barmode="group",
+    text="valor",
+    labels={
+        "produto_curto": "Produto",
+        "valor": "Preço (R$)",
+        "tipo": "Tipo de Preço"
+    },
+    template="plotly"
+)
+
+fig9.update_traces(
+    texttemplate="R$ %{text:,.0f}",
+    textposition="outside"
+)
+
+fig9.update_layout(
+    xaxis_tickangle=-30,
+    yaxis=dict(showgrid=False),
+    legend_title=""
+)
+
+st.plotly_chart(fig9, use_container_width=True)
+
+st.divider()
+
+# Tabela bruta 
 st.subheader("Tabela Bruta de Dados")
 cols_show = [
-    "data_coleta", 
-    "produto_titulo", 
-    "vendedor_nome", 
-    "vendedor_qtd_vendas_atual", 
+    "data_coleta",
+    "timestamp_coleta",
+
+    # produto
+    "produto_titulo",
+    "nota_no_dia",
+    "nota_atual_produto",
+    "avaliacoes_no_dia",
+    "avaliacoes_atuais_produto",
+
+    # vendedor
+    "vendedor_nome",
+    "reputacao_no_dia",
     "reputacao_atual_vendedor",
-    "preco_pix", 
+    "entrega_no_dia",
+    "entrega_atual_vendedor",
+    "vendedor_qtd_vendas_no_dia",
+    "vendedor_qtd_vendas_atual",
+
+    # preço
+    "preco_pix",
+    "preco_original",
+    "num_parcelas",
+    "valor_parcela",
+    "valor_total_parcelado",
+
+    # flags
     "eh_full"
 ]
 
