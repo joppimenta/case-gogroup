@@ -121,6 +121,21 @@ services:
       - DBT_PROFILES_DIR=/usr/app/dbt
     working_dir: /usr/app/dbt
 
+  streamlit:
+    build: .
+    container_name: streamlit_dashboard
+    command: >
+      bash -c "streamlit run /app/dashboard.py --server.port=8501 --server.address=0.0.0.0"
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./dashboard:/app
+      - ./credentials:/opt/airflow/credentials
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/credentials/gcp-key.json
+    depends_on:
+      - airflow-init
+
 volumes:
   postgres_data:
   n8n_data:

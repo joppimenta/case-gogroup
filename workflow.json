@@ -1,0 +1,69 @@
+{
+  "name": "Pipeline Magalu - Coleta Smartphones",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "coleta-magalu",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "id": "3eec531d-31d4-48c8-82cd-fc92d7577872",
+      "name": "Webhook",
+      "webhookId": "6d2e5f7a-a26b-4daf-81cd-3e8bac8f4f42"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "projectId": {
+          "__rl": true,
+          "value": "SEU_GCP_PROJECT_ID",
+          "mode": "list",
+          "cachedResultName": "SEU_GCP_PROJECT_ID",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=SEU_GCP_PROJECT_ID"
+        },
+        "sqlQuery": "INSERT INTO `SEU_GCP_PROJECT_ID.raw.smartphones` \n(\n    timestamp_coleta, eh_full, produto_titulo, preco_original, preco_pix, \n    num_parcelas, valor_parcela, valor_total_parcelado, produto_nota, \n    produto_num_avaliacoes, vendedor_nome, vendedor_reputacao, \n    vendedor_qtd_vendas, vendedor_desde, vendedor_entrega_prazo, \n    vendedor_atendimento, url_produto\n)\nVALUES \n(\n    SAFE.PARSE_TIMESTAMP('%Y-%m-%d %H:%M:%S', '{{ $json.body.timestamp_coleta }}'),\n    {{ $json.body.eh_full }},\n    '{{ $json.body.produto_titulo }}',\n    '{{ $json.body.preco_original }}',\n    '{{ $json.body.preco_pix }}',\n    '{{ $json.body.num_parcelas }}',\n    '{{ $json.body.valor_parcela }}',\n    '{{ $json.body.valor_total_parcelado }}',\n    '{{ $json.body.produto_nota }}',\n    '{{ $json.body.produto_num_avaliacoes }}',\n    '{{ $json.body.vendedor_nome }}',\n    '{{ $json.body.vendedor_reputacao }}',\n    '{{ $json.body.vendedor_qtd_vendas }}',\n    '{{ $json.body.vendedor_desde }}',\n    '{{ $json.body.vendedor_entrega_prazo }}',\n    '{{ $json.body.vendedor_atendimento }}',\n    '{{ $json.body.url_produto }}'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQuery",
+      "typeVersion": 2.1,
+      "position": [208, 0],
+      "id": "a95805b0-f2d5-4557-80a9-a92f4a0dd435",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "googleApi": {
+          "id": "SUA_CREDENTIAL_ID",
+          "name": "Google Service Account account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "546a89f8-460c-486b-88f9-32d8d048166c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "SUA_INSTANCE_ID"
+  },
+  "id": "dIqPRkGxv0w5QbQW",
+  "tags": []
+}

@@ -17,7 +17,8 @@ dim_v AS (
         id_vendedor, 
         vendedor_nome, 
         vendedor_reputacao AS reputacao_atual_vendedor,
-        vendedor_entrega_prazo AS entrega_atual_vendedor
+        vendedor_entrega_prazo AS entrega_atual_vendedor,
+        vendedor_qtd_vendas
     FROM {{ ref('dim_vendedores') }}
 )
 
@@ -41,6 +42,8 @@ SELECT
     v.reputacao_atual_vendedor,
     f.vendedor_entrega_prazo AS entrega_no_dia,
     v.entrega_atual_vendedor,
+    f.vendedor_qtd_vendas AS vendedor_qtd_vendas_no_dia,
+    v.vendedor_qtd_vendas AS vendedor_qtd_vendas_atual,
 
     f.preco_pix,
     f.preco_original,
