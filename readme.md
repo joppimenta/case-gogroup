@@ -185,6 +185,10 @@ Foram implementadas validações de qualidade via dbt, a fim de garantir unicida
 
 Abra [http://localhost:8501](http://localhost:8501) e visualize os dados.
 
+Abaixo, veja uma demonstração do uso do dashboard:
+
+![Dashboard Demo](docs/demo.gif)
+
 ## Variáveis de Ambiente
 
 Veja o arquivo `.env.example` para todas as variáveis necessárias.
