@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: dim_consolidado_smartphones
+    description: "Visão analítica final que une histórico diário e dados atuais de produtos e vendedores."
+    columns:
+      - name: produto_id
+        description: "Identificador único do produto."
+        tests:
+          - not_null
+
+      - name: vendedor_id
+        description: "Identificador único do vendedor."
+        tests:
+          - not_null
+
+      - name: data_coleta
+        description: "Data em que os dados foram capturados pelo scraper."
+        tests:
+          - not_null
+
+      - name: produto_titulo
+        description: "Título completo do smartphone."
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - produto_id
+            - vendedor_id
+            - data_coleta

@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: dim_produtos
+    description: "Dimensão de produtos com deduplicação, matendo apenas as informações mais atuais de cada smartphone."
+    columns:
+      - name: produto_id
+        description: "ID extraído da URL do produto"
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_vendedores
+    description: "Dimensão de vendedores com dados consolidados e deduplicados."
+    columns:
+      - name: id_vendedor
+        description: "Chave primária do vendedor."
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_produtos_diario
+    description: "Tabela fato com granularidade diária por produto e vendedor"
+    columns:
+      - name: produto_id
+        description: "ID do produto"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_produtos')
+              field: produto_id
+
+      - name: vendedor_id
+        description: "ID do vendedor"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_vendedores')
+              field: id_vendedor
+
+      - name: data_coleta
+        description: "Data da coleta (granularidade da fato)"
+        tests:
+          - not_null
+
+      - name: eh_full
+        description: "Flag se o produto tem selo FULL"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [true, false]
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - produto_id
+            - vendedor_id
+            - data_coleta

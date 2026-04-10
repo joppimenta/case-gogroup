@@ -154,7 +154,11 @@ docker compose up --build -d
 6. Atualize o campo `projectId` no node com o seu `GCP_PROJECT_ID`
 7. Ative o workflow
 
-### 6. Acesse o Airflow
+### 6. Configurar os smartphones buscados
+
+Na pasta `consumer/`, edite o arquivo `smartphones_alvo.json`, que contém a lista de smartphones que o scraper irá buscar no site da Magazineluiza. Caso queria, você também poderá modificar a quantidade de produtos que o scraper irá coletar dentro de cada busca feita, além do delay entre cada busca.
+
+### 7. Acesse o Airflow
 
 Abra [http://localhost:8080](http://localhost:8080) e ative a DAG `pipeline_magalu_bigquery`.
 
@@ -173,7 +177,9 @@ extrair_dados_magalu >> dbt_transform
 - **extrair_dados_magalu:** executa o scraper Python, coleta listagens de smartphones no Magazine Luiza e envia para o n8n, que persiste no BigQuery (camada RAW).
 - **dbt_transform:** executa `dbt run` aplicando todas as transformações de staging e marts.
 
-Configuração de retentativas: 1 retry com intervalo de 5 minutos.
+## Testes de qualidade de dados
+
+Foram implementadas validações de qualidade via dbt, a fim de garantir unicidade nos dados e que os campos essenciais estarão preenchidos. Você pode visualizar os testes feitos nos arquivos `schema.yml` das pastas `dbt/models/datamart/` e `dbt/models/staging/`
 
 ## Acesso ao Dashboard
 
