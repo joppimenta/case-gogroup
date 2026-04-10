@@ -22,7 +22,7 @@ Magazine Luiza (scraping)
    dbt (Staging → Marts)
         │
         ▼
-  Dashboard (em construção)
+  Dashboard (Streamlit)
         │
   Orquestração: Airflow
 ```
@@ -35,6 +35,7 @@ Magazine Luiza (scraping)
 | Fila / Stream | n8n (webhook) |
 | Armazenamento | Google BigQuery |
 | Transformação | dbt Core + dbt-bigquery |
+| Visualização | Streamlit |
 | Orquestração | Apache Airflow 2.9.1 |
 | Infraestrutura | Docker Compose |
 
@@ -60,6 +61,8 @@ case-gogroup/
 │   │   └── sources.yml
 │   ├── dbt_project.yml
 │   └── profiles.yml
+├── dashboard/
+│    └── dashboard.py # Dash analítico com as principais informações da dim_consolidado
 ├── credentials/                       # Credenciais do Google Cloud (não versionado)
 ├── workflow.json      # Workflow do n8n para importação
 ├── Dockerfile
@@ -91,8 +94,8 @@ Dados brutos inseridos diretamente do scraper, sem transformação. Cada execuç
 
 A pipeline implementa idempotência em duas camadas:
 
-- **RAW → Staging (dimensões):** `ROW_NUMBER() OVER(PARTITION BY id ORDER BY timestamp DESC)` garante que re-execuções não dupliquem registros nas dimensões — sempre prevalece o dado mais recente.
-- **RAW → Staging (fato diário):** `ROW_NUMBER() OVER(PARTITION BY produto_id, vendedor_id, data ORDER BY timestamp DESC)` garante exatamente um registro por produto/vendedor/dia, usando sempre a última coleta do dia como fonte de verdade.
+- **RAW → Staging (dimensões):** `ROW_NUMBER() OVER(PARTITION BY id ORDER BY timestamp DESC)` garante que re-execuções não dupliquem registros nas dimensões, sempre prevalecendo o dado mais recente.
+- **RAW → Staging (fato diário):** `ROW_NUMBER() OVER(PARTITION BY produto_id, vendedor_id, data ORDER BY timestamp DESC)` garante exatamente um registro por produto/vendedor/dia, usando sempre a última coleta do dia para enviar para a tabela final
 
 ---
 
@@ -171,6 +174,10 @@ extrair_dados_magalu >> dbt_transform
 - **dbt_transform:** executa `dbt run` aplicando todas as transformações de staging e marts.
 
 Configuração de retentativas: 1 retry com intervalo de 5 minutos.
+
+### Acesso ao Dashboard
+
+Abra [http://localhost:8501](http://localhost:8501) e visualize os dados.
 
 ## Variáveis de Ambiente
 
