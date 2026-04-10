@@ -1,0 +1,13 @@
+.env
+credentials/*.json
+credentials/
+
+logs/
+airflow/logs/
+
+dbt/target/
+dbt/logs/
+
+__pycache__/
+*.pyc
+.venv/

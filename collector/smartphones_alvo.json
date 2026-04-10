@@ -1,0 +1,13 @@
+{
+  "smartphones": [
+    "samsung galaxy a56",
+    "iphone 15 pro max",
+    "motorola edge 50",
+    "xiaomi redmi note 13",
+    "samsung galaxy s24 ultra"
+  ],
+  "config": {
+    "itens_por_modelo": 5,
+    "delay_entre_buscas": [5, 10]
+  }
+}

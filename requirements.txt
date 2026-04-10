@@ -1,0 +1,6 @@
+requests==2.31.0
+redis==5.0.4
+google-cloud-bigquery==3.20.1
+python-dotenv==1.0.1
+pandas==2.2.2
+loguru==0.7.2

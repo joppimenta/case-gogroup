@@ -1,0 +1,19 @@
+name: 'magalu_transform'
+version: '1.0.0'
+config-version: 2
+
+profile: 'magalu_transformation'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+
+models:
+  magalu_transform: 
+    staging:
+      +materialized: table
+    
+    datamart:
+      +materialized: table
+      +schema: datamart

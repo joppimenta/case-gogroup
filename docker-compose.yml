@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  airflow-common:
+    build: .
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./dbt:/opt/airflow/dbt
+      - ./credentials:/opt/airflow/credentials
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n_automation
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  airflow-init:
+    build: .
+    container_name: airflow_init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    command: db init
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./credentials:/opt/airflow/credentials
+      - ./dbt:/opt/airflow/dbt
+
+  airflow-webserver:
+    build: .
+    container_name: airflow_webserver
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/credentials/gcp-key.json
+    ports:
+      - "8080:8080"
+    command: webserver
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./credentials:/opt/airflow/credentials
+      - ./collector:/opt/airflow/collector
+      - ./consumer:/opt/airflow/consumer
+      - ./dbt:/opt/airflow/dbt
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      retries: 5
+
+  airflow-scheduler:
+    build: .
+    container_name: airflow_scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/credentials/gcp-key.json
+    command: scheduler
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ./credentials:/opt/airflow/credentials
+      - ./collector:/opt/airflow/collector
+      - ./consumer:/opt/airflow/consumer
+      - ./dbt:/opt/airflow/dbt
+
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-bigquery:latest
+    container_name: dbt_transform
+    volumes:
+      - ./dbt:/usr/app/dbt
+      - ./credentials:/opt/airflow/credentials
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_DATASET_RAW=${GCP_DATASET_RAW}
+      - GCP_DATASET_STAGING=${GCP_DATASET_STAGING}
+      - DBT_PROFILES_DIR=/usr/app/dbt
+    working_dir: /usr/app/dbt
+
+volumes:
+  postgres_data:
+  n8n_data:

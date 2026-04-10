@@ -1,0 +1,14 @@
+magalu_transformation:
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('GCP_PROJECT_ID') }}"
+      dataset: "{{ env_var('GCP_DATASET_STAGING') }}"
+      threads: 4
+      keyfile: /opt/airflow/credentials/gcp-key.json
+      location: "{{ env_var('GCP_LOCATION', 'US') }}"
+      priority: interactive
+      job_execution_timeout_seconds: 300
+      job_retries: 1
+  target: dev

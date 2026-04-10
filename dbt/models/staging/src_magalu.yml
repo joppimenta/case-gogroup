@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: raw
+    project: "{{ env_var('GCP_PROJECT_ID') }}"
+    dataset: "{{ env_var('GCP_DATASET_RAW') }}"
+    tables:
+      - name: smartphones
